@@ -8,7 +8,7 @@
             .toLowerCase();
         if (_pathTag) _pathTag = '_' + _pathTag;
         const APP_PREFIX = 'CHAT_APP_V3' + _pathTag + '_';
-        const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+        const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
         const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
         const MESSAGES_PER_PAGE = 50;
         

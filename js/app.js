@@ -287,6 +287,11 @@ window.addEventListener('load', function() {
     setTimeout(function() {
         // 公告不再主动弹窗，仅通过顶部「今日公告」按钮手动打开
 
+        // 记录梦角今日心情（每日一次，供每日公告/心情手账使用）
+        try {
+            if (typeof checkPartnerDailyMood === 'function') checkPartnerDailyMood();
+        } catch(e) { console.warn('checkPartnerDailyMood error:', e); }
+
         // 启动时检查梦角是否主动来信
         try {
             if (typeof checkEnvelopeStatus === 'function') {

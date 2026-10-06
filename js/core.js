@@ -1237,7 +1237,7 @@ const addMessage = (message) => {
             DOMElements.messageInput.value = '';
             DOMElements.messageInput.style.height = '46px';
             if (imageFile && imageFile.size > MAX_IMAGE_SIZE) {
-                showNotification('图片大小不能超过5MB', 'error'); DOMElements.imageInput.value = ''; return;
+                showNotification('图片大小不能超过20MB', 'error'); DOMElements.imageInput.value = ''; return;
             }
 
             const createMessage = (imgSrc = null) => {
@@ -1328,7 +1328,7 @@ if (!isBatchMode && type === 'normal') {
                 batchImgInput.addEventListener('change', async (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
-                    if (file.size > MAX_IMAGE_SIZE) { showNotification('图片超过5MB限制', 'warning'); return; }
+                    if (file.size > MAX_IMAGE_SIZE) { showNotification('图片超过20MB限制', 'warning'); return; }
                     try {
                         const base64 = await optimizeImage(file, 600, 0.8);
                         addToBatch(base64);
@@ -1365,6 +1365,29 @@ if (!isBatchMode && type === 'normal') {
             var h = inputArea.offsetHeight;
             tiW.style.bottom = h + 'px';
         }
+
+        // 统一隐藏"正在输入"，并清除安全兜底定时器
+        function _forceHideTypingIndicator() {
+            try {
+                if (window._typingIndicatorAutoHideTimer) {
+                    clearTimeout(window._typingIndicatorAutoHideTimer);
+                    window._typingIndicatorAutoHideTimer = null;
+                }
+            } catch (e) {}
+            var tiW = document.getElementById('typing-indicator-wrapper');
+            if (!tiW) return;
+            var inner = tiW.querySelector('.typing-indicator');
+            if (inner) {
+                inner.classList.add('hiding');
+                setTimeout(function () {
+                    tiW.style.display = 'none';
+                    if (inner) inner.classList.remove('hiding');
+                }, 240);
+            } else {
+                tiW.style.display = 'none';
+            }
+        }
+        window._forceHideTypingIndicator = _forceHideTypingIndicator;
         (function() {
             var inputArea = document.querySelector('.input-area-wrapper');
             if (!inputArea) return;
@@ -1412,11 +1435,15 @@ if (!isBatchMode && type === 'normal') {
                 }, readDelay);
             }
 
+            if (shouldIgnore) {
+                // 已读不回：本次不回复。若没有排队中的回复，则收起"正在输入"
+                if (!window._pendingReplyTimer) _forceHideTypingIndicator();
+                return false;
+            }
+
             // 取消之前排队的回复（连续触发时只保留最后一次）
             if (window._pendingReplyTimer) clearTimeout(window._pendingReplyTimer);
             window._pendingReplyTimer = null;
-
-            if (shouldIgnore) return false;
 
             // 显示 typing
             if (settings.typingIndicatorEnabled) {
@@ -1433,6 +1460,9 @@ if (!isBatchMode && type === 'normal') {
                     tiAvatar.innerHTML = partnerImg ? `<img src="${partnerImg.src}">` : '<i class="fas fa-user"></i>';
                 }
                 if (DOMElements.chatContainer) DOMElements.chatContainer.scrollTop = DOMElements.chatContainer.scrollHeight;
+                // 安全兜底：即使回复流程异常，也会在超时后自动收起"正在输入"
+                try { if (window._typingIndicatorAutoHideTimer) clearTimeout(window._typingIndicatorAutoHideTimer); } catch(e){}
+                window._typingIndicatorAutoHideTimer = setTimeout(_forceHideTypingIndicator, randomDelay + (settings.replyDelayMax || 30000) * 4 + 30000);
             }
 
             // 排队回复
@@ -1461,6 +1491,9 @@ if (!isBatchMode && type === 'normal') {
                     tiAvatar.innerHTML = partnerImg ? `<img src="${partnerImg.src}">` : '<i class="fas fa-user"></i>';
                 }
                 DOMElements.chatContainer.scrollTop = DOMElements.chatContainer.scrollHeight;
+                // 安全兜底：超时后自动收起
+                try { if (window._typingIndicatorAutoHideTimer) clearTimeout(window._typingIndicatorAutoHideTimer); } catch(e){}
+                window._typingIndicatorAutoHideTimer = setTimeout(_forceHideTypingIndicator, (settings.replyDelayMax || 30000) * 4 + 30000);
             }
 
             let changed = false;
@@ -1497,10 +1530,6 @@ if (partnerPersonas && partnerPersonas.length > 0 && Math.random() < 0.3) {
             }
 
             const replyCount = Math.random() < 0.75 ? 1: (Math.random() < 0.95 ? 2: 3);
-            if (!customReplies || customReplies.length === 0) {
-                showNotification('回复库为空，请先到「自定义回复」中添加内容', 'info', 3500);
-                return;
-            }
             const disabledItemsOnce = (() => {
                 try {
                     const raw = localStorage.getItem('disabledReplyItems');
@@ -1511,13 +1540,14 @@ if (partnerPersonas && partnerPersonas.length > 0 && Math.random() < 0.3) {
             (window.customReplyGroups || []).forEach(g => {
                 if (g.disabled && Array.isArray(g.items)) g.items.forEach(item => disabledGroupItemsOnce.add(item));
             });
-            const replyPoolOnce = customReplies
+            let replyPoolOnce = (Array.isArray(customReplies) ? customReplies : [])
                 .filter(r => !disabledItemsOnce.has(r) && !disabledGroupItemsOnce.has(r))
                 .map(r => String(r || '').trim())
                 .filter(Boolean);
             if (!replyPoolOnce.length) {
-                showNotification('回复库可用内容为空（可能被分组禁用或屏蔽），请到「自定义回复」中调整', 'info', 4000);
-                return;
+                // 兜底：回复库为空或被全部屏蔽时使用内置短句，避免"一直正在输入却不回复"
+                replyPoolOnce = ['嗯嗯，我在呢', '怎么啦？', '我在听', '好呀', '我也是', '嘿嘿'];
+                showNotification('回复库为空，已用内置短句回复（可在「自定义回复」中添加内容）', 'info', 3800);
             }
 
             // 确认有可用回复后再展示“正在输入中”，避免空转

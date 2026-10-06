@@ -468,6 +468,26 @@
         return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    /* ---------------- 梦角每日心情（供每日公告触发记录） ---------------- */
+    window.checkPartnerDailyMood = function () {
+        try {
+            if (!data || typeof data !== 'object') load();
+            var tKey = todayKey();
+            var day = data[tKey] || {};
+            if (day.partner) return; // 今天已记录，保持不变
+            var opts = allOptions();
+            if (!opts.length) return;
+            var pick = opts[Math.floor(Math.random() * opts.length)];
+            if (!data[tKey]) data[tKey] = {};
+            data[tKey].partner = pick.key;
+            if (!data[tKey].partnerNote) {
+                var pool = answerPool();
+                if (pool.length) data[tKey].partnerNote = pool[Math.floor(Math.random() * pool.length)];
+            }
+            persist();
+        } catch (e) { console.warn('checkPartnerDailyMood error:', e); }
+    };
+
     /* ---------------- 事件绑定 ---------------- */
     window.initMoodData = async function () {
         load();

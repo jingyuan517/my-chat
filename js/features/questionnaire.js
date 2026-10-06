@@ -39,34 +39,26 @@
         if (!pool.length) pool = ['嗯嗯，我在呢', '今天也有点想你', '好呀，都听你的', '让我想想…', '嘿嘿，你猜'];
         return pool;
     }
-    // 等概率随机；若可避免，则不与上一次重复（保证均衡、不总是同一张）
-    function pickBalanced(arr, avoid) {
-        if (!arr.length) return '';
-        var pool = arr;
-        if (avoid != null && arr.length > 1) {
-            var filtered = arr.filter(function (x) { return x !== avoid; });
-            if (filtered.length) pool = filtered;
-        }
-        return pool[Math.floor(Math.random() * pool.length)];
+    // 完全随机：从数组里等概率取一个（每题独立，允许相邻重复）
+    function pickRandom(arr) {
+        if (!arr || !arr.length) return '';
+        return arr[Math.floor(Math.random() * arr.length)];
     }
-    function genCardAnswer(avoid) {
+    function genCardAnswer() {
         var pool = answerPool();
         var n = Math.random() < 0.6 ? 1 : 2;
         var parts = [];
-        var last = avoid;
         for (var i = 0; i < n; i++) {
-            var picked = pickBalanced(pool, last);
-            parts.push(picked);
-            last = picked;
+            parts.push(pickRandom(pool));
         }
         return parts.join('，') + '。';
     }
-    function genAnswer(item, q, avoid) {
+    function genAnswer(item, q) {
         var opts = qOptions(q).map(function (o) { return String(o || '').trim(); }).filter(Boolean);
         if (item.mode === 'choice' && opts.length) {
-            return pickBalanced(opts, avoid);
+            return pickRandom(opts);
         }
-        return genCardAnswer(avoid);
+        return genCardAnswer();
     }
 
     /* ---------------- 状态检查 ---------------- */
@@ -87,12 +79,7 @@
                 // 答案一旦生成即固定：刷新、重复检查都不会改变
                 var newlyAnswered = false;
                 if (!Array.isArray(item.answers) || item.answers.length !== item.questions.length) {
-                    var last = null;
-                    item.answers = item.questions.map(function (q) {
-                        var a = genAnswer(item, q, last);
-                        last = a;
-                        return a;
-                    });
+                    item.answers = item.questions.map(function (q) { return genAnswer(item, q); });
                     newlyAnswered = true;
                 }
                 if (!item.answeredTime) item.answeredTime = now;

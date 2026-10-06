@@ -850,7 +850,7 @@ function showPokeLibraryManager() {
                     const file = e.target.files[0];
                     if (file) {
                         if (file.size > MAX_IMAGE_SIZE) {
-                            showNotification('图片大小不能超过5MB', 'error');
+                            showNotification('图片大小不能超过20MB', 'error');
                             return;
                         }
                         showNotification('正在优化图片...', 'info', 1500);
@@ -1147,6 +1147,8 @@ var statusPool = [
 
 function _buildDailyGreeting() {
     try {
+        // 触发/确保梦角今日心情已记录（每日一次，固定不变）
+        if (typeof window.checkPartnerDailyMood === 'function') window.checkPartnerDailyMood();
         var data = _getDailyGreetingData();
         var festival = data.festival;
         var timeLabel = data.timeLabel;
