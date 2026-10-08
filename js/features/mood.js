@@ -468,6 +468,14 @@
         return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    /* ---------------- 字卡库候选短句 ---------------- */
+    function answerPool() {
+        var pool = (typeof customReplies !== 'undefined' && Array.isArray(customReplies)) ? customReplies.slice() : [];
+        pool = pool.map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+        if (!pool.length) pool = ['嗯嗯，我在呢', '今天也有点想你', '好呀，都听你的', '让我想想…', '嘿嘿，你猜'];
+        return pool;
+    }
+
     /* ---------------- 梦角每日心情（供每日公告触发记录） ---------------- */
     window.checkPartnerDailyMood = function () {
         try {

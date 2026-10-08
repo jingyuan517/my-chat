@@ -766,7 +766,7 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
         // 梦角主动随机来电：每隔 30–90 分钟检查一次，40% 概率来电
         var CHECK_MIN = 30 * 60 * 1000;
         var CHECK_MAX = 90 * 60 * 1000;
-        var CHANCE = 0.4;
+        var CHANCE = 0.2;
         var delay = CHECK_MIN + Math.random() * (CHECK_MAX - CHECK_MIN);
         S.randomCallTimer = setTimeout(function () {
             if (S.enabled && !S.active) {
